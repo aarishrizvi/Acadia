@@ -1,0 +1,169 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access information",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Full name of the user" },
+        "photoURL": { "type": "string", "description": "User profile avatar URL" },
+        "role": { "type": "string", "enum": ["student", "instructor", "admin"], "description": "User role in the system" },
+        "bio": { "type": "string", "description": "Short bio for instructor or student" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Account last update timestamp" }
+      },
+      "required": ["email", "displayName", "role"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Admin user marker document for rule validation",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "Admin email address" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Promotion timestamp" }
+      },
+      "required": ["email"]
+    },
+    "Academy": {
+      "title": "Academy",
+      "description": "Educational academy entity hosting courses",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Academy name" },
+        "tagline": { "type": "string", "description": "Short tagline" },
+        "description": { "type": "string", "description": "Detailed description of the academy" },
+        "category": { "type": "string", "description": "Main domain/category" },
+        "coverImage": { "type": "string", "description": "Cover banner image URL" },
+        "logoImage": { "type": "string", "description": "Logo image URL" },
+        "website": { "type": "string", "description": "Official website URL" },
+        "instructorId": { "type": "string", "description": "Owner instructor Firebase UID" },
+        "instructorName": { "type": "string", "description": "Owner instructor display name" },
+        "instructorEmail": { "type": "string", "description": "Owner instructor email" },
+        "featured": { "type": "boolean", "description": "Whether featured on homepage" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      },
+      "required": ["name", "tagline", "category", "instructorId"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "Course offered by an academy",
+      "type": "object",
+      "properties": {
+        "academyId": { "type": "string", "description": "ID of parent academy" },
+        "instructorId": { "type": "string", "description": "UID of instructor author" },
+        "instructorName": { "type": "string", "description": "Author instructor name" },
+        "title": { "type": "string", "description": "Course title" },
+        "slug": { "type": "string", "description": "URL slug" },
+        "subtitle": { "type": "string", "description": "Course subtitle summary" },
+        "description": { "type": "string", "description": "Full course curriculum overview" },
+        "category": { "type": "string", "description": "Course category" },
+        "level": { "type": "string", "enum": ["Beginner", "Intermediate", "Advanced"], "description": "Difficulty level" },
+        "estimatedHours": { "type": "number", "description": "Estimated completion hours" },
+        "price": { "type": "number", "description": "Course price (0 for free)" },
+        "coverImage": { "type": "string", "description": "Course thumbnail cover image URL" },
+        "learningObjectives": { "type": "array", "description": "Bullet points of what students will learn" },
+        "requirements": { "type": "array", "description": "Course prerequisites" },
+        "published": { "type": "boolean", "description": "Whether course is public" },
+        "featured": { "type": "boolean", "description": "Whether featured in catalogue" },
+        "rating": { "type": "number", "description": "Average review rating 1-5" },
+        "reviewCount": { "type": "number", "description": "Number of reviews submitted" },
+        "enrolledCount": { "type": "number", "description": "Number of students enrolled" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["academyId", "instructorId", "title", "category", "level"]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "Lesson unit inside a course",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string", "description": "Parent course ID" },
+        "academyId": { "type": "string", "description": "Parent academy ID" },
+        "order": { "type": "number", "description": "Sequence order index" },
+        "title": { "type": "string", "description": "Lesson title" },
+        "description": { "type": "string", "description": "Short summary of lesson" },
+        "content": { "type": "string", "description": "Markdown lesson content and notes" },
+        "durationMinutes": { "type": "number", "description": "Duration in minutes" },
+        "videoUrl": { "type": "string", "description": "Video stream or embed URL" },
+        "attachments": { "type": "array", "description": "Downloadable attachments list" },
+        "isFreePreview": { "type": "boolean", "description": "Can be previewed without enrollment" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["courseId", "order", "title"]
+    },
+    "Enrollment": {
+      "title": "Enrollment",
+      "description": "Student enrollment record for a course",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Student user UID" },
+        "userEmail": { "type": "string", "description": "Student email" },
+        "userName": { "type": "string", "description": "Student display name" },
+        "courseId": { "type": "string", "description": "Course ID" },
+        "courseTitle": { "type": "string", "description": "Course title cache" },
+        "courseCover": { "type": "string", "description": "Course cover thumbnail cache" },
+        "academyId": { "type": "string", "description": "Academy ID" },
+        "academyName": { "type": "string", "description": "Academy name cache" },
+        "enrolledAt": { "type": "string", "format": "date-time", "description": "Enrollment timestamp" },
+        "completedLessons": { "type": "array", "description": "Array of completed lesson IDs" },
+        "progressPercent": { "type": "number", "description": "Calculated progress 0-100" },
+        "completed": { "type": "boolean", "description": "Whether course is 100% completed" },
+        "completedAt": { "type": "string", "format": "date-time", "description": "Completion timestamp" },
+        "lastAccessedAt": { "type": "string", "format": "date-time", "description": "Last accessed timestamp" }
+      },
+      "required": ["userId", "courseId"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Course review and rating by student",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string", "description": "Course ID" },
+        "academyId": { "type": "string", "description": "Academy ID" },
+        "userId": { "type": "string", "description": "Student UID" },
+        "userName": { "type": "string", "description": "Student display name" },
+        "userPhoto": { "type": "string", "description": "Student avatar" },
+        "rating": { "type": "number", "description": "Rating out of 5" },
+        "title": { "type": "string", "description": "Review headline" },
+        "comment": { "type": "string", "description": "Review commentary" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Review submission timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last edit timestamp" }
+      },
+      "required": ["courseId", "userId", "rating", "comment"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Admin privileges marker collection"
+    },
+    "/academies/{academyId}": {
+      "schema": "Academy",
+      "description": "Academies created by instructors"
+    },
+    "/courses/{courseId}": {
+      "schema": "Course",
+      "description": "Courses published by academies"
+    },
+    "/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "Lesson modules belonging to courses"
+    },
+    "/enrollments/{enrollmentId}": {
+      "schema": "Enrollment",
+      "description": "Course enrollment and completion progress"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Course ratings and reviews"
+    }
+  }
+}
