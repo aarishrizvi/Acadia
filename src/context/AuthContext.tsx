@@ -1,7 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, googleAuthProvider, signInWithPopup, fbSignOut, testConnection } from '../lib/firebase';
+import {
+  auth,
+  db,
+  googleAuthProvider,
+  signInWithPopup,
+  fbSignOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  testConnection,
+} from '../lib/firebase';
 import { UserProfile, UserRole } from '../types';
 import { initializeDataStore } from '../services/dataService';
 
@@ -9,9 +19,15 @@ interface AuthContextType {
   currentUser: UserProfile | null;
   firebaseUser: FirebaseUser | null;
   isLoading: boolean;
-  loginWithGoogle: () => Promise<void>;
-  loginAsDemoUser: (role: UserRole) => Promise<void>;
-  switchRole: (newRole: UserRole) => Promise<void>;
+  loginWithEmail: (email: string, pass: string) => Promise<UserProfile>;
+  registerWithEmail: (
+    email: string,
+    pass: string,
+    displayName: string,
+    role: 'student' | 'instructor'
+  ) => Promise<UserProfile>;
+  loginWithGoogle: () => Promise<UserProfile>;
+  loginQuickUser: (role: 'student' | 'instructor' | 'admin') => Promise<UserProfile>;
   logout: () => Promise<void>;
   updateBio: (bio: string) => Promise<void>;
 }
@@ -25,83 +41,93 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Helper to fetch or create user in Firestore
+  const syncUserProfile = async (
+    user: FirebaseUser,
+    explicitRole?: UserRole,
+    overrideName?: string
+  ): Promise<UserProfile> => {
+    const userDocRef = doc(db, 'users', user.uid);
+    const isAdminEmail = user.email?.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
+
+    try {
+      const snap = await getDoc(userDocRef);
+      if (snap.exists()) {
+        const data = snap.data() as UserProfile;
+        if (isAdminEmail && data.role !== 'admin') {
+          data.role = 'admin';
+          await setDoc(userDocRef, { ...data, role: 'admin' }, { merge: true });
+          await setDoc(doc(db, 'admins', user.uid), {
+            email: user.email,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        return data;
+      }
+    } catch (err) {
+      console.warn('Error reading user document:', err);
+    }
+
+    const assignedRole: UserRole = isAdminEmail
+      ? 'admin'
+      : explicitRole || 'student';
+
+    const newProfile: UserProfile = {
+      id: user.uid,
+      email: user.email || '',
+      displayName:
+        overrideName ||
+        user.displayName ||
+        user.email?.split('@')[0] ||
+        'Acadia Scholar',
+      photoURL:
+        user.photoURL ||
+        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+          user.displayName || user.email || 'User'
+        )}`,
+      role: assignedRole,
+      bio:
+        assignedRole === 'admin'
+          ? 'Platform Super Administrator'
+          : assignedRole === 'instructor'
+          ? 'Lead Technical Instructor & Course Author'
+          : 'Lifelong Learner & Technical Student',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      await setDoc(userDocRef, newProfile, { merge: true });
+      if (assignedRole === 'admin') {
+        await setDoc(doc(db, 'admins', user.uid), {
+          email: user.email,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn('Error saving user profile to Firestore:', err);
+    }
+
+    return newProfile;
+  };
+
   useEffect(() => {
-    // Initial connection test and data store seeding
     testConnection();
     initializeDataStore();
-
-    // Check stored demo session or listen to Firebase
-    const savedDemoUser = localStorage.getItem('acadia_demo_user');
-    if (savedDemoUser) {
-      try {
-        const parsed = JSON.parse(savedDemoUser);
-        setCurrentUser(parsed);
-      } catch (e) {
-        console.error('Error parsing stored demo user', e);
-      }
-    }
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
-        // Clear demo override if real auth exists
-        localStorage.removeItem('acadia_demo_user');
         try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userDocRef);
-
-          const isAdminEmail = user.email?.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
-
-          if (userSnap.exists()) {
-            const data = userSnap.data() as UserProfile;
-            if (isAdminEmail && data.role !== 'admin') {
-              data.role = 'admin';
-              await setDoc(userDocRef, { ...data, role: 'admin' }, { merge: true });
-              await setDoc(doc(db, 'admins', user.uid), { email: user.email, createdAt: new Date().toISOString() }, { merge: true });
-            }
-            setCurrentUser(data);
-          } else {
-            const newUser: UserProfile = {
-              id: user.uid,
-              email: user.email || '',
-              displayName: user.displayName || user.email?.split('@')[0] || 'Learner',
-              photoURL: user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`,
-              role: isAdminEmail ? 'admin' : 'student',
-              bio: isAdminEmail ? 'Platform Super Administrator & Senior Instructor' : 'Passionate lifelong learner',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            await setDoc(userDocRef, newUser);
-            if (isAdminEmail) {
-              await setDoc(doc(db, 'admins', user.uid), { email: user.email, createdAt: new Date().toISOString() });
-            }
-            setCurrentUser(newUser);
-          }
-        } catch (error) {
-          console.warn('Could not sync user with Firestore, fallback local session:', error);
-          const fallbackUser: UserProfile = {
-            id: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || 'Acadia Member',
-            photoURL: user.photoURL || undefined,
-            role: user.email === BOOTSTRAP_ADMIN_EMAIL ? 'admin' : 'student',
-            createdAt: new Date().toISOString(),
-          };
-          setCurrentUser(fallbackUser);
+          const profile = await syncUserProfile(user);
+          setCurrentUser(profile);
+        } catch (err) {
+          console.error('Failed to sync authenticated profile:', err);
+          setCurrentUser(null);
         }
-      } else if (!savedDemoUser) {
-        // Set a default demo profile (Instructor/Student) so the user experiences full functionality immediately
-        const defaultProfile: UserProfile = {
-          id: 'demo-instructor-1',
-          email: 'instructor@acadia.edu',
-          displayName: 'Prof. Julian Vance',
-          photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80',
-          role: 'instructor',
-          bio: 'Lead System Architect & Founder at Hyperion Code Labs. 12+ years in distributed systems.',
-          createdAt: new Date().toISOString(),
-        };
-        setCurrentUser(defaultProfile);
-        localStorage.setItem('acadia_demo_user', JSON.stringify(defaultProfile));
+      } else {
+        // Visitor is not logged in
+        setCurrentUser(null);
       }
       setIsLoading(false);
     });
@@ -109,97 +135,109 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithEmail = async (email: string, pass: string): Promise<UserProfile> => {
     setIsLoading(true);
     try {
-      await signInWithPopup(auth, googleAuthProvider);
-    } catch (error) {
-      console.error('Sign-in error:', error);
-      throw error;
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
+      const profile = await syncUserProfile(cred.user);
+      setCurrentUser(profile);
+      return profile;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loginAsDemoUser = async (role: UserRole) => {
+  const registerWithEmail = async (
+    email: string,
+    pass: string,
+    displayName: string,
+    role: 'student' | 'instructor'
+  ): Promise<UserProfile> => {
     setIsLoading(true);
-    let demoUser: UserProfile;
-    if (role === 'admin') {
-      demoUser = {
-        id: 'admin-arish',
-        email: BOOTSTRAP_ADMIN_EMAIL,
-        displayName: 'Arish Rizvi (Admin)',
-        photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&q=80',
-        role: 'admin',
-        bio: 'Super Admin & Lead Platform Architect for ACADIA LMS.',
-        createdAt: new Date().toISOString(),
-      };
-    } else if (role === 'instructor') {
-      demoUser = {
-        id: 'instructor-julian',
-        email: 'julian.vance@acadia.edu',
-        displayName: 'Prof. Julian Vance',
-        photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80',
-        role: 'instructor',
-        bio: 'Founder of Hyperion Code Labs. Senior Distributed Systems Consultant.',
-        createdAt: new Date().toISOString(),
-      };
-    } else {
-      demoUser = {
-        id: 'student-alex',
-        email: 'alex.rivers@student.acadia.edu',
-        displayName: 'Alex Rivers',
-        photoURL: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&q=80',
-        role: 'student',
-        bio: 'Frontend enthusiast transitioning to full-stack cloud engineering.',
-        createdAt: new Date().toISOString(),
-      };
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+      await updateProfile(cred.user, { displayName });
+      const profile = await syncUserProfile(cred.user, role, displayName);
+      setCurrentUser(profile);
+      return profile;
+    } finally {
+      setIsLoading(false);
     }
-
-    setCurrentUser(demoUser);
-    localStorage.setItem('acadia_demo_user', JSON.stringify(demoUser));
-    setIsLoading(false);
   };
 
-  const switchRole = async (newRole: UserRole) => {
-    if (!currentUser) return;
-    const updated = { ...currentUser, role: newRole };
-    setCurrentUser(updated);
-    localStorage.setItem('acadia_demo_user', JSON.stringify(updated));
-    // If real user is logged in, try updating Firestore
-    if (firebaseUser) {
-      try {
-        await setDoc(doc(db, 'users', currentUser.id), { role: newRole }, { merge: true });
-      } catch (e) {
-        console.warn('Local role switched; Firestore sync warning:', e);
+  const loginWithGoogle = async (): Promise<UserProfile> => {
+    setIsLoading(true);
+    try {
+      const cred = await signInWithPopup(auth, googleAuthProvider);
+      const profile = await syncUserProfile(cred.user);
+      setCurrentUser(profile);
+      return profile;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper login for rapid demonstration using authentic database accounts
+  const loginQuickUser = async (role: 'student' | 'instructor' | 'admin'): Promise<UserProfile> => {
+    setIsLoading(true);
+    try {
+      let email = 'student@acadia.edu';
+      let password = 'AcadiaStudent2026!';
+      let name = 'Alex Rivers';
+
+      if (role === 'admin') {
+        email = BOOTSTRAP_ADMIN_EMAIL;
+        password = 'AcadiaAdmin2026!';
+        name = 'Arish Rizvi (Admin)';
+      } else if (role === 'instructor') {
+        email = 'instructor@hyperion.edu';
+        password = 'AcadiaInstructor2026!';
+        name = 'Prof. Julian Vance';
       }
+
+      // Try signing in; if account doesn't exist, create it in Firebase Auth
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const profile = await syncUserProfile(cred.user, role, name);
+        setCurrentUser(profile);
+        return profile;
+      } catch (signInErr: any) {
+        if (
+          signInErr.code === 'auth/user-not-found' ||
+          signInErr.code === 'auth/invalid-credential' ||
+          signInErr.code === 'auth/wrong-password'
+        ) {
+          const cred = await createUserWithEmailAndPassword(auth, email, password);
+          await updateProfile(cred.user, { displayName: name });
+          const profile = await syncUserProfile(cred.user, role, name);
+          setCurrentUser(profile);
+          return profile;
+        }
+        throw signInErr;
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const logout = async () => {
+    setIsLoading(true);
     try {
-      localStorage.removeItem('acadia_demo_user');
-      if (firebaseUser) {
-        await fbSignOut(auth);
-      }
-      // Revert to demo student
-      loginAsDemoUser('student');
-    } catch (error) {
-      console.error('Logout error:', error);
+      await fbSignOut(auth);
+      setCurrentUser(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const updateBio = async (bio: string) => {
     if (!currentUser) return;
-    const updated = { ...currentUser, bio };
+    const updated = { ...currentUser, bio, updatedAt: new Date().toISOString() };
     setCurrentUser(updated);
-    localStorage.setItem('acadia_demo_user', JSON.stringify(updated));
-    if (firebaseUser) {
-      try {
-        await setDoc(doc(db, 'users', currentUser.id), { bio }, { merge: true });
-      } catch (e) {
-        console.warn('Could not persist bio to Firestore:', e);
-      }
+    try {
+      await setDoc(doc(db, 'users', currentUser.id), { bio }, { merge: true });
+    } catch (err) {
+      console.warn('Could not persist bio update:', err);
     }
   };
 
@@ -209,9 +247,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentUser,
         firebaseUser,
         isLoading,
+        loginWithEmail,
+        registerWithEmail,
         loginWithGoogle,
-        loginAsDemoUser,
-        switchRole,
+        loginQuickUser,
         logout,
         updateBio,
       }}

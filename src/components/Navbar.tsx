@@ -1,387 +1,360 @@
 import React, { useState } from 'react';
 import {
   GraduationCap,
-  BookOpen,
   Compass,
+  Layers,
+  BookOpen,
   LayoutDashboard,
-  ShieldAlert,
-  UserCheck,
+  Shield,
   LogOut,
-  LogIn,
+  User,
+  ChevronDown,
   Menu,
   X,
-  ChevronDown,
-  Sparkles,
-  Layers
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { UserRole, ViewMode } from '../types';
 
 interface NavbarProps {
-  currentView: ViewMode;
-  onNavigate: (view: ViewMode, data?: any) => void;
+  currentPath: string;
+  onNavigate: (path: string) => void;
+  onOpenAuth: (mode?: 'login' | 'register', role?: 'student' | 'instructor') => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
-  const { currentUser, loginWithGoogle, logout, switchRole, loginAsDemoUser } = useAuth();
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate, onOpenAuth }) => {
+  const { currentUser, logout } = useAuth();
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleRoleChange = (role: UserRole) => {
-    switchRole(role);
-    setRoleMenuOpen(false);
-    if (role === 'student') onNavigate('student_dashboard');
-    else if (role === 'instructor') onNavigate('instructor_dashboard');
-    else if (role === 'admin') onNavigate('admin_dashboard');
+  const handleLogout = async () => {
+    setUserDropdownOpen(false);
+    await logout();
+    onNavigate('/');
   };
 
-  const getRoleBadgeColor = (role?: UserRole) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-rose-500/20 text-rose-400 border-rose-500/40';
-      case 'instructor':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/40';
-      case 'student':
-      default:
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
-    }
+  const isActive = (path: string) => {
+    if (path === '/' && currentPath === '/') return true;
+    if (path !== '/' && currentPath.startsWith(path)) return true;
+    return false;
   };
 
   return (
-    <nav className="sticky top-0 z-40 w-full bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80">
+    <header className="sticky top-0 z-40 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand Logo */}
-          <div
-            onClick={() => onNavigate('home')}
-            className="flex items-center gap-3 cursor-pointer group select-none"
-          >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 p-0.5 shadow-md shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition">
-              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
+          {/* Left: Brand Logo & Primary Navigation */}
+          <div className="flex items-center gap-8">
+            <button
+              onClick={() => onNavigate('/')}
+              className="flex items-center gap-2.5 text-left group select-none"
+            >
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm">
+                <GraduationCap className="w-5 h-5" />
               </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl font-black tracking-wider text-white">ACADIA</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-400 border border-indigo-800">
-                  LMS
+              <div className="flex flex-col">
+                <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white leading-none">
+                  ACADIA
+                </span>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest leading-none mt-0.5">
+                  Academy Network
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 hidden sm:block tracking-tight -mt-0.5">
-                Academy &amp; Course Platform
-              </p>
-            </div>
-          </div>
-
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-1 lg:gap-2">
-            <button
-              onClick={() => onNavigate('courses')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
-                currentView === 'courses'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Compass className="w-4 h-4" />
-              Explore Courses
             </button>
 
-            <button
-              onClick={() => onNavigate('academies')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
-                currentView === 'academies'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              Academies
-            </button>
+            {/* Desktop Navigation Links */}
+            <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+              <button
+                onClick={() => onNavigate('/courses')}
+                className={`px-3 py-1.5 rounded-md transition ${
+                  isActive('/courses')
+                    ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50/60 dark:bg-indigo-950/40'
+                    : 'hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                Explore Courses
+              </button>
 
-            {/* Student learning portal */}
-            <button
-              onClick={() => onNavigate('student_dashboard')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
-                currentView === 'student_dashboard'
-                  ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              My Learning
-            </button>
+              <button
+                onClick={() => onNavigate('/academies')}
+                className={`px-3 py-1.5 rounded-md transition ${
+                  isActive('/academies')
+                    ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50/60 dark:bg-indigo-950/40'
+                    : 'hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                }`}
+              >
+                Academies
+              </button>
 
-            {/* Instructor Studio */}
-            <button
-              onClick={() => onNavigate('instructor_dashboard')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
-                currentView === 'instructor_dashboard'
-                  ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              Instructor Studio
-            </button>
+              {/* Authenticated Role-Specific Link (Only for the verified role) */}
+              {currentUser?.role === 'student' && (
+                <button
+                  onClick={() => onNavigate('/dashboard')}
+                  className={`px-3 py-1.5 rounded-md transition ${
+                    isActive('/dashboard')
+                      ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50/60 dark:bg-indigo-950/40'
+                      : 'hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  My Learning
+                </button>
+              )}
 
-            {/* Admin Portal (highlighted if admin, or accessible for testing) */}
-            <button
-              onClick={() => onNavigate('admin_dashboard')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
-                currentView === 'admin_dashboard'
-                  ? 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <ShieldAlert className="w-4 h-4" />
-              Admin
-            </button>
+              {currentUser?.role === 'instructor' && (
+                <button
+                  onClick={() => onNavigate('/studio')}
+                  className={`px-3 py-1.5 rounded-md transition ${
+                    isActive('/studio')
+                      ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50/60 dark:bg-indigo-950/40'
+                      : 'hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  Instructor Studio
+                </button>
+              )}
+
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => onNavigate('/admin')}
+                  className={`px-3 py-1.5 rounded-md transition ${
+                    isActive('/admin')
+                      ? 'text-rose-600 dark:text-rose-400 font-semibold bg-rose-50 dark:bg-rose-950/40'
+                      : 'hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  Admin Portal
+                </button>
+              )}
+
+              {!currentUser && (
+                <button
+                  onClick={() => onOpenAuth('register', 'instructor')}
+                  className="px-3 py-1.5 rounded-md hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60 transition"
+                >
+                  Teach on Acadia
+                </button>
+              )}
+            </nav>
           </div>
 
           {/* Right Action Controls */}
           <div className="hidden md:flex items-center gap-3">
-            {/* Quick Role Switcher Pill */}
-            <div className="relative">
-              <button
-                onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition ${getRoleBadgeColor(
-                  currentUser?.role
-                )}`}
-                title="Switch view perspective"
-              >
-                <span className="uppercase text-[10px] tracking-wider">Role:</span>
-                <span className="capitalize">{currentUser?.role || 'Student'}</span>
-                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
-              </button>
-
-              {roleMenuOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-2 z-50 animate-fadeIn">
-                  <div className="px-3 py-1.5 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Switch Test Perspective
-                  </div>
-                  <button
-                    onClick={() => handleRoleChange('student')}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800/80 ${
-                      currentUser?.role === 'student' ? 'text-emerald-400 font-bold' : 'text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Student (Learner)</span>
-                    </div>
-                    {currentUser?.role === 'student' && <span className="text-[10px]">Active</span>}
-                  </button>
-
-                  <button
-                    onClick={() => handleRoleChange('instructor')}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800/80 ${
-                      currentUser?.role === 'instructor' ? 'text-amber-400 font-bold' : 'text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Instructor (Academy)</span>
-                    </div>
-                    {currentUser?.role === 'instructor' && <span className="text-[10px]">Active</span>}
-                  </button>
-
-                  <button
-                    onClick={() => handleRoleChange('admin')}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800/80 ${
-                      currentUser?.role === 'admin' ? 'text-rose-400 font-bold' : 'text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                      <span>Platform Admin</span>
-                    </div>
-                    {currentUser?.role === 'admin' && <span className="text-[10px]">Active</span>}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* User Profile & Auth Menu */}
             {currentUser ? (
               <div className="relative">
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-1 pl-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-full transition"
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center gap-2 p-1.5 pr-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
                 >
-                  <span className="text-xs text-slate-200 font-medium max-w-[120px] truncate">
-                    {currentUser.displayName}
-                  </span>
                   <img
-                    src={currentUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`}
-                    alt="User"
-                    className="w-7 h-7 rounded-full object-cover border border-slate-700"
+                    src={
+                      currentUser.photoURL ||
+                      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
+                        currentUser.displayName
+                      )}`
+                    }
+                    alt={currentUser.displayName}
+                    className="w-7 h-7 rounded-md object-cover bg-slate-100 dark:bg-slate-800"
                   />
+                  <div className="text-left hidden lg:block">
+                    <p className="text-xs font-semibold text-slate-900 dark:text-white max-w-[130px] truncate leading-tight">
+                      {currentUser.displayName}
+                    </p>
+                    <p className="text-[10px] text-slate-500 capitalize leading-tight">
+                      {currentUser.role}
+                    </p>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-2 z-50 animate-fadeIn text-slate-200">
-                    <div className="px-3 py-2 border-b border-slate-800">
-                      <p className="text-sm font-semibold text-white truncate">{currentUser.displayName}</p>
-                      <p className="text-xs text-slate-400 truncate">{currentUser.email}</p>
+                {/* Dropdown Menu */}
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl py-1.5 z-50 animate-fadeIn text-xs">
+                    <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                      <p className="font-semibold text-slate-900 dark:text-white truncate">
+                        {currentUser.displayName}
+                      </p>
+                      <p className="text-slate-500 truncate text-[11px]">{currentUser.email}</p>
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {currentUser.role} Account
+                      </span>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        onNavigate('student_dashboard');
-                        setUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 flex items-center gap-2"
-                    >
-                      <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                      My Enrolled Courses
-                    </button>
+                    {currentUser.role === 'student' && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          onNavigate('/dashboard');
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                      >
+                        <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        My Learning Dashboard
+                      </button>
+                    )}
+
+                    {currentUser.role === 'instructor' && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          onNavigate('/studio');
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        Instructor Studio
+                      </button>
+                    )}
+
+                    {currentUser.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          onNavigate('/admin');
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                      >
+                        <Shield className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                        Admin Portal
+                      </button>
+                    )}
+
+                    <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
 
                     <button
-                      onClick={() => {
-                        onNavigate('instructor_dashboard');
-                        setUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 flex items-center gap-2"
+                      onClick={handleLogout}
+                      className="w-full text-left px-3 py-2 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 flex items-center gap-2"
                     >
-                      <LayoutDashboard className="w-3.5 h-3.5 text-amber-400" />
-                      Instructor Studio
-                    </button>
-
-                    <div className="border-t border-slate-800 my-1" />
-
-                    <button
-                      onClick={() => {
-                        loginWithGoogle().catch(() => {});
-                        setUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 flex items-center gap-2 text-indigo-400"
-                    >
-                      <LogIn className="w-3.5 h-3.5" />
-                      Link / Sign in with Google
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        logout();
-                        setUserMenuOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-800 flex items-center gap-2 text-rose-400"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      Reset Session / Sign Out
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <button
-                onClick={() => loginWithGoogle()}
-                className="px-4 py-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-lg shadow-indigo-600/20 transition flex items-center gap-2"
-              >
-                <LogIn className="w-4 h-4" />
-                Sign In
-              </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => onOpenAuth('login')}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => onOpenAuth('register')}
+                  className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-md shadow-sm transition"
+                >
+                  Join for Free
+                </button>
+              </div>
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile menu trigger */}
           <div className="flex md:hidden items-center gap-2">
             <button
-              onClick={() => handleRoleChange(currentUser?.role === 'instructor' ? 'student' : 'instructor')}
-              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${getRoleBadgeColor(
-                currentUser?.role
-              )}`}
-            >
-              {currentUser?.role}
-            </button>
-            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              aria-label="Toggle navigation menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 pt-2 pb-4 space-y-2 animate-fadeIn">
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pt-3 pb-5 space-y-2 text-sm font-medium animate-fadeIn">
           <button
             onClick={() => {
-              onNavigate('courses');
               setMobileMenuOpen(false);
+              onNavigate('/courses');
             }}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+            className="w-full text-left px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
           >
-            <Compass className="w-4 h-4 text-indigo-400" />
             Explore Courses
           </button>
           <button
             onClick={() => {
-              onNavigate('academies');
               setMobileMenuOpen(false);
+              onNavigate('/academies');
             }}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+            className="w-full text-left px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
           >
-            <Layers className="w-4 h-4 text-blue-400" />
             Academies
           </button>
-          <button
-            onClick={() => {
-              onNavigate('student_dashboard');
-              setMobileMenuOpen(false);
-            }}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"
-          >
-            <BookOpen className="w-4 h-4 text-emerald-400" />
-            My Learning
-          </button>
-          <button
-            onClick={() => {
-              onNavigate('instructor_dashboard');
-              setMobileMenuOpen(false);
-            }}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"
-          >
-            <LayoutDashboard className="w-4 h-4 text-amber-400" />
-            Instructor Studio
-          </button>
-          <button
-            onClick={() => {
-              onNavigate('admin_dashboard');
-              setMobileMenuOpen(false);
-            }}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-200 hover:bg-slate-800 flex items-center gap-2"
-          >
-            <ShieldAlert className="w-4 h-4 text-rose-400" />
-            Admin Portal
-          </button>
 
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Viewing as:</span>
-            <div className="flex gap-1">
-              {(['student', 'instructor', 'admin'] as UserRole[]).map((r) => (
+          {currentUser?.role === 'student' && (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onNavigate('/dashboard');
+              }}
+              className="w-full text-left px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-semibold"
+            >
+              My Learning Dashboard
+            </button>
+          )}
+
+          {currentUser?.role === 'instructor' && (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onNavigate('/studio');
+              }}
+              className="w-full text-left px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400 font-semibold"
+            >
+              Instructor Studio
+            </button>
+          )}
+
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onNavigate('/admin');
+              }}
+              className="w-full text-left px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-rose-600 dark:text-rose-400 font-semibold"
+            >
+              Admin Portal
+            </button>
+          )}
+
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+            {currentUser ? (
+              <div className="space-y-2">
+                <div className="px-3 py-1 text-xs text-slate-500">
+                  Signed in as {currentUser.displayName} ({currentUser.role})
+                </div>
                 <button
-                  key={r}
-                  onClick={() => {
-                    handleRoleChange(r);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`px-2 py-1 text-xs rounded capitalize ${
-                    currentUser?.role === r ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'
-                  }`}
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 text-rose-600 dark:text-rose-400 text-xs font-semibold"
                 >
-                  {r}
+                  Sign Out
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAuth('login');
+                  }}
+                  className="w-full py-2 text-center text-xs font-semibold border border-slate-300 dark:border-slate-700 rounded-md"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAuth('register');
+                  }}
+                  className="w-full py-2 text-center text-xs font-semibold bg-indigo-600 text-white rounded-md"
+                >
+                  Join for Free
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 };

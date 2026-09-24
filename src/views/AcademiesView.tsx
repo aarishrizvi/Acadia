@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { Search, Layers, BookOpen, Users, ExternalLink, GraduationCap, ArrowRight } from 'lucide-react';
-import { Academy, ViewMode } from '../types';
+import { Academy } from '../types';
 
 interface AcademiesViewProps {
   academies: Academy[];
   onSelectAcademy: (academy: Academy) => void;
-  onNavigate: (view: ViewMode) => void;
+  onNavigate: (path: string) => void;
+  onOpenAuth: (mode?: 'login' | 'register', role?: 'student' | 'instructor') => void;
 }
 
 export const AcademiesView: React.FC<AcademiesViewProps> = ({
   academies,
   onSelectAcademy,
   onNavigate,
+  onOpenAuth,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -33,45 +35,45 @@ export const AcademiesView: React.FC<AcademiesViewProps> = ({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-            Specialized Academies
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            Specialized Academies &amp; Studios
           </h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Browse world-class technical studios established and led by verified domain experts.
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            Browse verified technical academies established and operated by experienced practitioners.
           </p>
         </div>
 
         <button
-          onClick={() => onNavigate('instructor_dashboard')}
-          className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg shadow-amber-500/20 transition flex items-center gap-2 self-start md:self-auto"
+          onClick={() => onOpenAuth('register', 'instructor')}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md text-xs shadow-sm transition flex items-center gap-1.5 self-start md:self-auto"
         >
           <GraduationCap className="w-4 h-4" />
-          Create an Academy
+          Apply to Launch Academy
         </button>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl shadow-lg space-y-4">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-lg shadow-sm space-y-3">
         <div className="relative">
-          <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search academies by name, topic, or instructor..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500 placeholder-slate-500"
+            placeholder="Search academies by name, category, or instructor..."
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition ${
+              className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
                 selectedCategory === cat
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {cat}
@@ -86,54 +88,55 @@ export const AcademiesView: React.FC<AcademiesViewProps> = ({
           <div
             key={academy.id}
             onClick={() => onSelectAcademy(academy)}
-            className="group cursor-pointer rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden hover:border-indigo-500/50 hover:shadow-2xl transition duration-300 flex flex-col justify-between"
+            className="cursor-pointer bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-sm transition flex flex-col justify-between"
           >
             <div>
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative h-44 overflow-hidden bg-slate-100 dark:bg-slate-800">
                 <img
                   src={academy.coverImage}
                   alt={academy.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-                <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900/90 text-indigo-300 border border-slate-700">
+                <span className="absolute top-2.5 left-2.5 text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-900/90 text-white">
                   {academy.category}
                 </span>
-                <div className="absolute -bottom-4 left-5 w-14 h-14 rounded-xl bg-slate-900 border-2 border-slate-800 p-0.5 shadow-md">
+                <div className="absolute -bottom-3 left-4 w-12 h-12 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-0.5 shadow-md">
                   <img
                     src={academy.logoImage}
                     alt={academy.name}
-                    className="w-full h-full object-cover rounded-lg"
+                    className="w-full h-full object-cover rounded-md"
                   />
                 </div>
               </div>
 
-              <div className="p-6 pt-7 space-y-2">
-                <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition">
+              <div className="p-5 pt-6 space-y-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   {academy.name}
                 </h3>
-                <p className="text-xs text-indigo-400 font-medium">{academy.tagline}</p>
-                <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                  {academy.tagline}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
                   {academy.description}
                 </p>
               </div>
             </div>
 
-            <div className="p-6 pt-0">
-              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1 text-slate-300">
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="p-5 pt-0">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5 text-slate-400" />
                     {academy.courseCount || 1} Courses
                   </span>
-                  <span className="flex items-center gap-1 text-slate-300">
-                    <Users className="w-3.5 h-3.5 text-emerald-400" />
-                    {academy.studentCount || 200}+ Students
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-slate-400" />
+                    {academy.studentCount || 200}+ Learners
                   </span>
                 </div>
 
-                <span className="text-indigo-400 font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  Enter Academy
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                  View Academy
                   <ArrowRight className="w-3.5 h-3.5" />
                 </span>
               </div>
