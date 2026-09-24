@@ -1,0 +1,6 @@
+{
+  "name": "ACADIA - Online Course & Academy Platform",
+  "description": "Modern LMS web application connecting instructors and students through academies, courses, lessons, progress tracking, and reviews.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
